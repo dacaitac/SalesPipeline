@@ -4,36 +4,60 @@ plugins {
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
+/*
+ * Project Metadata
+ */
 group = 'com.learning'
 version = '0.0.1-SNAPSHOT'
 description = 'sales'
 
+/*
+ * Java Configuration
+ */
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
     }
 }
 
+/*
+ * Repositories
+ */
 repositories {
     mavenCentral()
 }
 
+/*
+ * Dependencies
+ */
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-h2console'
+
+    // --- Spring Boot Starters ---
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-restclient'
-    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-    compileOnly 'org.projectlombok:lombok'
+
+    // --- Database ---
     runtimeOnly 'com.h2database:h2'
+
+    // --- Development Tools ---
+    compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+
+    // --- Testing ---
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-restclient-test'
-    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+
     testCompileOnly 'org.projectlombok:lombok'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
+
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+/*
+ * Test Configuration
+ */
 tasks.named('test') {
     useJUnitPlatform()
 }
