@@ -6,7 +6,9 @@ import com.company.sales.domain.model.ValidationStatus;
 import com.company.sales.domain.ports.out.NationalRegistryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
+@Component
 public class NationalRegistryStubAdapter implements NationalRegistryPort {
     private static final Logger log = LoggerFactory.getLogger(NationalRegistryStubAdapter.class);
     @Override

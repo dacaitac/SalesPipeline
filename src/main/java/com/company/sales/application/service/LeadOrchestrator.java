@@ -11,6 +11,7 @@ import com.company.sales.domain.ports.out.QualificationScorerPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -20,6 +21,7 @@ import java.util.Map;
 /**
  * Orchestrates the validation flow using structured concurrency.
  */
+@Service
 public class LeadOrchestrator implements LeadOrchestrationUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(LeadOrchestrator.class);

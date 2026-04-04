@@ -6,7 +6,9 @@ import com.company.sales.domain.model.ValidationStatus;
 import com.company.sales.domain.ports.out.QualificationScorerPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
+@Component
 public class QualificationScorerStubAdapter implements QualificationScorerPort {
     private static final Logger log = LoggerFactory.getLogger(QualificationScorerStubAdapter.class);
     @Override

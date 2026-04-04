@@ -6,9 +6,11 @@ import com.company.sales.domain.ports.out.ComplianceCachePort;
 import com.company.sales.infrastructure.adapters.out.db.entity.ComplianceCacheEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
+import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+@Repository
 public class ComplianceCacheJpaAdapter implements ComplianceCachePort {
     private final EntityManagerFactory emf;
 
