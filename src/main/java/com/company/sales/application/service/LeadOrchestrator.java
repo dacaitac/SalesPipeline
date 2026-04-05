@@ -17,6 +17,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * Orchestrates the validation flow using structured concurrency.
@@ -93,7 +94,7 @@ public class LeadOrchestrator implements LeadOrchestrationUseCase {
                 }).whenComplete((res, ex) -> MDC.clear());
     }
 
-    private ValidationResult executeWithMdc(Map<String, String> contextMap, java.util.function.Supplier<ValidationResult> action) {
+    private ValidationResult executeWithMdc(Map<String, String> contextMap, Supplier<ValidationResult> action) {
         setMdc(contextMap);
         try {
             return action.get();

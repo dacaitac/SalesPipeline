@@ -1,21 +1,25 @@
 package com.company.sales.infrastructure.adapters.in;
 
 import com.company.sales.domain.model.Lead;
+import com.company.sales.domain.ports.in.LeadManagementUseCase;
 import com.company.sales.domain.ports.in.LeadOrchestrationUseCase;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.Scanner;
 
 @Component
 public class LeadCliController {
 
     private final LeadOrchestrationUseCase leadOrchestrationUseCase;
+    private final LeadManagementUseCase leadManagementUseCase;
     private final Scanner scanner;
 
-    public LeadCliController(LeadOrchestrationUseCase leadOrchestrationUseCase) {
+    public LeadCliController(LeadOrchestrationUseCase leadOrchestrationUseCase, LeadManagementUseCase leadManagementUseCase) {
         this.leadOrchestrationUseCase = leadOrchestrationUseCase;
+        this.leadManagementUseCase = leadManagementUseCase;
         this.scanner = new Scanner(System.in);
     }
 
@@ -29,28 +33,20 @@ public class LeadCliController {
             String option = scanner.nextLine();
 
             switch (option) {
-                case "1":
-                    handleValidateNewLead();
-                    break;
-                case "2":
-                    handleViewAllLeads();
-                    break;
-                case "3":
-                    handleUpdateLead();
-                    break;
-                case "4":
-                    handleDeleteLead();
-                    break;
-                case "0":
+                case "1" -> handleValidateNewLead();
+                case "2" -> handleViewAllLeads();
+                case "3" -> handleUpdateLead();
+                case "4" -> handleDeleteLead();
+                case "0" -> {
                     running = false;
                     System.out.println("\n[INFO] Exiting Automated Lead Qualification Orchestrator. Goodbye.");
-                    break;
-                default:
-                    System.out.println("\n[ERROR] Invalid option. Please select a valid number from the menu.");
+                }
+                default -> System.out.println("\n[ERROR] Invalid option. Please select a valid number from the menu.");
             }
         }
     }
 
+    // ... (printHeader y printMenu se mantienen igual) ...
     private void printHeader() {
         System.out.println("\n===============================================================================");
         System.out.println("                 AUTOMATED LEAD QUALIFICATION ORCHESTRATOR                     ");
@@ -81,8 +77,9 @@ public class LeadCliController {
         String email = scanner.nextLine();
 
         Lead lead = new Lead(id, LocalDate.of(1990, 1, 1), firstName, lastName, email);
+        leadManagementUseCase.createLead(lead);
 
-        System.out.println("\n[INFO] Processing validation pipeline...");
+        System.out.println("\n[INFO] Lead saved. Processing validation pipeline...");
         
         try {
             var result = leadOrchestrationUseCase.processLead(lead).join();
@@ -97,14 +94,8 @@ public class LeadCliController {
 
     private void handleViewAllLeads() {
         System.out.println("\n--- LEAD DIRECTORY ---");
-        
-        // Simulación de datos recuperados de la base de datos
-        List<Lead> dummyLeads = List.of(
-                new Lead("123456789", LocalDate.of(1990, 5, 15), "John", "Doe", "john.doe@example.com"),
-                new Lead("987654321", LocalDate.of(1985, 8, 22), "Jane", "Smith", "jane.smith@example.com")
-        );
-
-        printTable(dummyLeads);
+        List<Lead> leads = leadManagementUseCase.getAllLeads();
+        printTable(leads);
     }
 
     private void printTable(List<Lead> leads) {
@@ -119,11 +110,7 @@ public class LeadCliController {
             System.out.printf("| %-71s |%n", "No records found.");
         } else {
             for (Lead lead : leads) {
-                System.out.printf(format, 
-                        lead.nationalId(), 
-                        lead.firstName(), 
-                        lead.lastName(), 
-                        lead.email());
+                System.out.printf(format, lead.nationalId(), lead.firstName(), lead.lastName(), lead.email());
             }
         }
         System.out.println(separator);
@@ -132,14 +119,32 @@ public class LeadCliController {
     private void handleUpdateLead() {
         System.out.println("\n--- UPDATE LEAD ---");
         System.out.print("Enter National ID to update: ");
-        scanner.nextLine();
-        System.out.println("[INFO] Update module is currently under construction.");
+        String id = scanner.nextLine();
+
+        Optional<Lead> existingLead = leadManagementUseCase.getLead(id);
+        if (existingLead.isEmpty()) {
+            System.out.println("[ERROR] Lead not found.");
+            return;
+        }
+
+        System.out.print("Enter New Email (leave blank to keep current): ");
+        String newEmail = scanner.nextLine();
+        
+        Lead current = existingLead.get();
+        Lead updatedLead = new Lead(
+                current.nationalId(), current.dateOfBirth(), current.firstName(), current.lastName(),
+                newEmail.isEmpty() ? current.email() : newEmail
+        );
+
+        leadManagementUseCase.updateLead(updatedLead);
+        System.out.println("[INFO] Lead updated successfully.");
     }
 
     private void handleDeleteLead() {
         System.out.println("\n--- DELETE LEAD ---");
         System.out.print("Enter National ID to delete: ");
-        scanner.nextLine();
-        System.out.println("[INFO] Delete module is currently under construction.");
+        String id = scanner.nextLine();
+        leadManagementUseCase.deleteLead(id);
+        System.out.println("[INFO] Lead deleted successfully.");
     }
 }

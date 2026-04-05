@@ -10,14 +10,12 @@ public class SalesApplication implements CommandLineRunner {
 
     private final LeadCliController cliController;
 
-    // Spring inyecta automáticamente el controlador
     public SalesApplication(LeadCliController cliController) {
         this.cliController = cliController;
     }
 
     public static void main(String[] args) {
         SpringApplication app = new SpringApplication(SalesApplication.class);
-        // Desactiva el banner de Spring para mantener la consola limpia
         app.setLogStartupInfo(false);
         app.run(args);
     }
