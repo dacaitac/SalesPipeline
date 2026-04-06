@@ -4,8 +4,10 @@ import com.company.sales.infrastructure.adapters.in.LeadCliController;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
+@EnableScheduling
 public class SalesApplication implements CommandLineRunner {
 
     private final LeadCliController cliController;

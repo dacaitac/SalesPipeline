@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
 
+import static com.company.sales.domain.model.ValidationStatus.PENDING;
+
 @Component
 public class LeadCliController {
 
@@ -76,15 +78,16 @@ public class LeadCliController {
         System.out.print("Enter Email: ");
         String email = scanner.nextLine();
 
-        Lead lead = new Lead(id, LocalDate.of(1990, 1, 1), firstName, lastName, email);
+        // Se inicializa con estado PENDING, sin reintentos
+        Lead lead = new Lead(id, LocalDate.of(1990, 1, 1), firstName, lastName, email, PENDING, 0, null);
         leadManagementUseCase.createLead(lead);
 
-        System.out.println("\n[INFO] Lead saved. Processing validation pipeline...");
-        
+        System.out.println("\n[INFO] Lead saved as PENDING. Processing validation pipeline...");
+
         try {
             var result = leadOrchestrationUseCase.processLead(lead).join();
             System.out.println("\n--- VALIDATION RESULT ---");
-            System.out.printf("%-15s: %s%n", "Status", result.status());
+            System.out.printf("%-15s: %s%n", "Final Status", result.status());
             System.out.printf("%-15s: %s%n", "Reason", result.reason());
             System.out.println("-------------------------");
         } catch (Exception e) {
@@ -99,18 +102,18 @@ public class LeadCliController {
     }
 
     private void printTable(List<Lead> leads) {
-        String format = "| %-15s | %-15s | %-15s | %-25s |%n";
-        String separator = "+-----------------+-----------------+-----------------+---------------------------+";
+        String format = "| %-15s | %-15s | %-15s | %-25s | %-15s |%n";
+        String separator = "+-----------------+-----------------+-----------------+---------------------------+-----------------+";
 
         System.out.println(separator);
-        System.out.printf(format, "NATIONAL ID", "FIRST NAME", "LAST NAME", "EMAIL");
+        System.out.printf(format, "NATIONAL ID", "FIRST NAME", "LAST NAME", "EMAIL", "STATUS");
         System.out.println(separator);
 
         if (leads.isEmpty()) {
-            System.out.printf("| %-71s |%n", "No records found.");
+            System.out.printf("| %-93s |%n", "No records found.");
         } else {
             for (Lead lead : leads) {
-                System.out.printf(format, lead.nationalId(), lead.firstName(), lead.lastName(), lead.email());
+                System.out.printf(format, lead.nationalId(), lead.firstName(), lead.lastName(), lead.email(), lead.validationStatus());
             }
         }
         System.out.println(separator);
@@ -129,11 +132,12 @@ public class LeadCliController {
 
         System.out.print("Enter New Email (leave blank to keep current): ");
         String newEmail = scanner.nextLine();
-        
+
         Lead current = existingLead.get();
         Lead updatedLead = new Lead(
                 current.nationalId(), current.dateOfBirth(), current.firstName(), current.lastName(),
-                newEmail.isEmpty() ? current.email() : newEmail
+                newEmail.isEmpty() ? current.email() : newEmail,
+                current.validationStatus(), current.retryCount(), current.nextRetryTime() // Mantiene valores transaccionales
         );
 
         leadManagementUseCase.updateLead(updatedLead);

@@ -29,7 +29,7 @@ class ComplianceCachingDecoratorTest {
     @BeforeEach
     void setUp() {
         decorator = new ComplianceCachingDecorator(delegate, cachePort);
-        dummyLead = new Lead("123", LocalDate.of(1990, 1, 1), "John", "Doe", "test@test.com");
+        dummyLead = new Lead("123", LocalDate.of(1990, 1, 1), "John", "Doe", "test@test.com", ValidationStatus.PENDING, 0, null);
     }
 
     @Test

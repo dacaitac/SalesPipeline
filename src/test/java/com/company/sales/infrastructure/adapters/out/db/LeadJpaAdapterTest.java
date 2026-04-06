@@ -1,6 +1,7 @@
 package com.company.sales.infrastructure.adapters.out.db;
 
 import com.company.sales.domain.model.Lead;
+import com.company.sales.domain.model.ValidationStatus;
 import com.company.sales.infrastructure.adapters.in.LeadCliController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,19 +25,21 @@ class LeadJpaAdapterTest {
     private LeadCliController cliController;
 
     @Test
-    void shouldSaveAndRetrieveLead() {
-        Lead lead = new Lead("ID-999", LocalDate.of(1995, 10, 10), "Jane", "Doe", "jane@test.com");
+    void shouldSaveAndRetrieveLeadWithNewFields() {
+        Lead lead = new Lead("ID-999", LocalDate.of(1995, 10, 10), "Jane", "Doe", "jane@test.com", ValidationStatus.MANUAL_REVIEW, 2, null);
 
         adapter.save(lead);
 
         Optional<Lead> retrieved = adapter.findById("ID-999");
         assertTrue(retrieved.isPresent());
         assertEquals("Jane", retrieved.get().firstName());
+        assertEquals(ValidationStatus.MANUAL_REVIEW, retrieved.get().validationStatus());
+        assertEquals(2, retrieved.get().retryCount());
     }
 
     @Test
     void shouldDeleteLead() {
-        Lead lead = new Lead("ID-888", LocalDate.of(1995, 10, 10), "Jane", "Doe", "jane@test.com");
+        Lead lead = new Lead("ID-888", LocalDate.of(1995, 10, 10), "Jane", "Doe", "jane@test.com", ValidationStatus.PENDING, 0, null);
         adapter.save(lead);
 
         adapter.deleteById("ID-888");

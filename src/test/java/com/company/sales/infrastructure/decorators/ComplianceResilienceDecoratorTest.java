@@ -17,10 +17,10 @@ class ComplianceResilienceDecoratorTest {
     @Test
     void shouldReturnManualReviewOnException() {
         ComplianceBureauPort delegate = mock(ComplianceBureauPort.class);
-        Lead dummyLead = new Lead("123", LocalDate.of(1990, 1, 1), "John", "Doe", "test@test.com");
-        
+        Lead dummyLead = new Lead("123", LocalDate.of(1990, 1, 1), "John", "Doe", "test@test.com", ValidationStatus.PENDING, 0, null);
+
         when(delegate.verifyCompliance(dummyLead)).thenThrow(new RuntimeException("Network Error"));
-        
+
         ComplianceResilienceDecorator decorator = new ComplianceResilienceDecorator(delegate);
         ValidationResult result = decorator.verifyCompliance(dummyLead);
 
