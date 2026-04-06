@@ -9,8 +9,6 @@ import java.util.concurrent.Executors;
 @Configuration
 public class ExecutorConfig {
 
-    // destroyMethod = "shutdown" le indica a Spring que cierre el pool 
-    // ordenadamente cuando la aplicación se detenga.
     @Bean(destroyMethod = "shutdown")
     public ExecutorService leadValidationExecutor() {
         return Executors.newFixedThreadPool(10);

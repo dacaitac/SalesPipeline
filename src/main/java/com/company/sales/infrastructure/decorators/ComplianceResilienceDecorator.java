@@ -28,7 +28,7 @@ public class ComplianceResilienceDecorator implements ComplianceBureauPort {
                 log.warn("Local retry attempt {} for lead {}. Reason: {}", attempts, lead.nationalId(), e.getMessage());
                 if (attempts >= MAX_LOCAL_RETRIES) {
                     log.error("Local resilience exhausted for lead {}", lead.nationalId());
-                    throw e; // Escalamos al orquestador para reintento asíncrono
+                    throw e;
                 }
                 waitForNextAttempt();
             }

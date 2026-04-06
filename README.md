@@ -33,8 +33,16 @@ Spec-driven development was prioritized to define the system boundaries, interfa
   1. **Idempotency Considerations:** Re-injecting a lead into the pipeline triggers all validations again. While the cache handles the Compliance Bureau, we risk re-executing the National Registry and Judicial checks. In a production environment, the domain model should be refined to track the status of each individual validation step to ensure true idempotency.
   2. **Incomplete Test Coverage for New Components:** The AI focused heavily on the implementation code but omitted the unit tests for the `LeadRetryScheduler` and the new `LeadJsonFileAdapter`. These tests must be authored manually to ensure the persistence and scheduling logic work as intended under different conditions.
 
+### v0.4: Test Coverage Expansion, Resilience Fixes & Quality Standards
+* **AI Artifact (Chat Log):** [Gemini Conversation Link](https://gemini.google.com/share/68feb99dde22)
+* **What Worked Well:** I successfully closed the testing gaps identified in v0.3 by introducing comprehensive unit tests for the infrastructure adapters (`LeadJsonFileAdapterTest`, `LeadJpaAdapterTest`) and schedulers (`LeadRetrySchedulerTest`). I also corrected an architectural mismatch in `ComplianceResilienceDecoratorTest`, ensuring the test accurately expects a `RuntimeException` when local retries are exhausted. This aligns the test suite with the intended resilience behavior in production.
+* **What Went Wrong & Refinements Needed:** Although the test suite is more robust, I observed that the core domain model still processes the pipeline as an all-or-nothing operation. Currently, if the retry scheduler picks up a failed lead, it re-executes the entire pipeline. I need to address this lack of step-by-step idempotency to prevent redundant calls to external services that may have already succeeded.
+
 ## Pending Improvements
-Based on the final state of the project, the following technical debt and improvements remain:
-1. **Containerization:** Add Docker and Docker Compose configurations to package the application and run the simulated external services/databases consistently across environments.
-2. **RESTful API Layer:** Replace or complement the CLI interface with a REST API adapter (Spring Web) to make the orchestration layer consumable by external CRMs or other internal microservices.
-3. **Advanced Step-by-Step Idempotency:** Refactor the `Lead` model and database schema to store the individual results of each validation step (Registry, Judicial, Compliance). This will prevent redundant external calls when a lead is re-processed by the retry scheduler.
+Based on the current state of the project, I have identified the following areas for improvement to reach a production-ready standard:
+
+1. **Advanced Step-by-Step Idempotency (State Machine):** Refactor the `Lead` domain model to track the individual status of each validation step (e.g., `registryStatus`, `judicialStatus`, `complianceStatus`). I will update the `LeadOrchestrator` to skip previously approved validations when a lead is re-injected by the retry scheduler, optimizing resource usage and avoiding redundant API calls.
+
+2. **Code Coverage Limits & Static Analysis:** Configure the build process to fail if test coverage drops below a strict threshold (e.g., 85% branch coverage). Additionally, I plan to integrate static analysis tools like `Checkstyle` or `Spotless` to enforce consistent code formatting and prevent code smells.
+
+3. **Containerization (Docker):** Create a `Dockerfile` using a lightweight base image (e.g., `eclipse-temurin:17-jre-alpine`) and a `docker-compose.yml` file. This will ensure that the application and CLI can be executed consistently across different environments without requiring local dependencies.
