@@ -1,5 +1,7 @@
 package com.company.sales.infrastructure.adapters.in;
 
+import com.company.sales.domain.exception.DomainValidationException;
+import com.company.sales.domain.exception.ResourceNotFoundException;
 import com.company.sales.domain.model.Lead;
 import com.company.sales.domain.ports.in.LeadManagementUseCase;
 import com.company.sales.domain.ports.in.LeadOrchestrationUseCase;
@@ -78,18 +80,20 @@ public class LeadCliController {
         System.out.print("Enter Email: ");
         String email = scanner.nextLine();
 
-        // Se inicializa con estado PENDING, sin reintentos
-        Lead lead = new Lead(id, LocalDate.of(1990, 1, 1), firstName, lastName, email, PENDING, 0, null);
-        leadManagementUseCase.createLead(lead);
-
-        System.out.println("\n[INFO] Lead saved as PENDING. Processing validation pipeline...");
-
         try {
+            Lead lead = new Lead(id, LocalDate.of(1990, 1, 1), firstName, lastName, email, PENDING, 0, null);
+            leadManagementUseCase.createLead(lead);
+
+            System.out.println("\n[INFO] Lead saved as PENDING. Processing validation pipeline...");
             var result = leadOrchestrationUseCase.processLead(lead).join();
+
             System.out.println("\n--- VALIDATION RESULT ---");
             System.out.printf("%-15s: %s%n", "Final Status", result.status());
             System.out.printf("%-15s: %s%n", "Reason", result.reason());
             System.out.println("-------------------------");
+
+        } catch (DomainValidationException e) {
+            System.out.println("\n[VALIDATION ERROR] " + e.getMessage());
         } catch (Exception e) {
             System.out.println("\n[ERROR] Pipeline execution failed: " + e.getMessage());
         }
@@ -134,14 +138,20 @@ public class LeadCliController {
         String newEmail = scanner.nextLine();
 
         Lead current = existingLead.get();
-        Lead updatedLead = new Lead(
-                current.nationalId(), current.dateOfBirth(), current.firstName(), current.lastName(),
-                newEmail.isEmpty() ? current.email() : newEmail,
-                current.validationStatus(), current.retryCount(), current.nextRetryTime() // Mantiene valores transaccionales
-        );
+        String updatedEmail = newEmail.isEmpty() ? current.email() : newEmail;
 
-        leadManagementUseCase.updateLead(updatedLead);
-        System.out.println("[INFO] Lead updated successfully.");
+        try {
+            Lead updatedLead = new Lead(
+                    current.nationalId(), current.dateOfBirth(), current.firstName(), current.lastName(),
+                    updatedEmail, current.validationStatus(), current.retryCount(), current.nextRetryTime()
+            );
+            leadManagementUseCase.updateLead(updatedLead);
+            System.out.println("[INFO] Lead updated successfully.");
+        } catch (DomainValidationException e) {
+            System.out.println("\n[VALIDATION ERROR] " + e.getMessage());
+        } catch (ResourceNotFoundException e) {
+            System.out.println("\n[NOT FOUND ERROR] " + e.getMessage());
+        }
     }
 
     private void handleDeleteLead() {

@@ -8,18 +8,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 @Component
 public class JudicialBackgroundStubAdapter implements JudicialBackgroundPort {
-    
+
     private static final Logger log = LoggerFactory.getLogger(JudicialBackgroundStubAdapter.class);
+    private static final double REJECTION_PROBABILITY = 0.20;
 
     @Override
     public ValidationResult checkBackground(Lead lead) {
         log.info("Starting judicial background check...");
         simulateLatency(600);
         log.info("Judicial background check completed.");
-        
-        // Simulación de respuesta exitosa
+
+        if (ThreadLocalRandom.current().nextDouble() < REJECTION_PROBABILITY) {
+            log.warn("Judicial background check failed for lead: records found.");
+            return new ValidationResult(ValidationStatus.REJECTED, "Criminal records found.");
+        }
+
         return new ValidationResult(ValidationStatus.APPROVED, "No criminal records found.");
     }
 

@@ -38,6 +38,16 @@ Spec-driven development was prioritized to define the system boundaries, interfa
 * **What Worked Well:** I successfully closed the testing gaps identified in v0.3 by introducing comprehensive unit tests for the infrastructure adapters (`LeadJsonFileAdapterTest`, `LeadJpaAdapterTest`) and schedulers (`LeadRetrySchedulerTest`). I also corrected an architectural mismatch in `ComplianceResilienceDecoratorTest`, ensuring the test accurately expects a `RuntimeException` when local retries are exhausted. This aligns the test suite with the intended resilience behavior in production.
 * **What Went Wrong & Refinements Needed:** Although the test suite is more robust, I observed that the core domain model still processes the pipeline as an all-or-nothing operation. Currently, if the retry scheduler picks up a failed lead, it re-executes the entire pipeline. I need to address this lack of step-by-step idempotency to prevent redundant calls to external services that may have already succeeded.
 
+### v0.5: Domain Validation, Custom Exceptions & Refactoring
+* **AI Artifact (Chat Log):** [Gemini Conversation Link](hhttps://gemini.google.com/share/35b6dbbb41df)
+* **What Worked Well:**
+  * **Rich Domain Model:** Implemented a self-validating `Lead` record that prevents invalid states (e.g., empty IDs, future birth dates, or malformed emails) at the constructor level.
+  * **Custom Exception Handling:** Introduced `DomainValidationException` and `ResourceNotFoundException` to replace generic errors, providing better semantic meaning to failures.
+  * **Semantic Refactoring:** Renamed decorators to `CachedComplianceBureau` and `RetryingComplianceBureau` to align with domain language rather than just design pattern names.
+  * **CLI Resilience:** Updated the controller to gracefully catch and display domain errors to the user without crashing the application.
+* **What Went Wrong & Refinements Needed:**
+  * **Delayed Idempotency:** While the domain model was strengthened, the step-by-step idempotency (skipping already successful validations during retries) identified in v0.4 remains pending and is now the primary goal for the next architectural iteration.
+
 ## Pending Improvements
 Based on the current state of the project, I have identified the following areas for improvement to reach a production-ready standard:
 

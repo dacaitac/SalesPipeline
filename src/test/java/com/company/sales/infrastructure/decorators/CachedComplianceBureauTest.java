@@ -18,17 +18,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class ComplianceCachingDecoratorTest {
+class CachedComplianceBureauTest {
 
     @Mock private ComplianceBureauPort delegate;
     @Mock private ComplianceCachePort cachePort;
 
-    private ComplianceCachingDecorator decorator;
+    private CachedComplianceBureau decorator;
     private Lead dummyLead;
 
     @BeforeEach
     void setUp() {
-        decorator = new ComplianceCachingDecorator(delegate, cachePort);
+        decorator = new CachedComplianceBureau(delegate, cachePort);
         dummyLead = new Lead("123", LocalDate.of(1990, 1, 1), "John", "Doe", "test@test.com", ValidationStatus.PENDING, 0, null);
     }
 

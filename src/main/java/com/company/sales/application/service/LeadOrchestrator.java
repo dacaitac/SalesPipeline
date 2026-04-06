@@ -18,6 +18,7 @@ import java.util.function.Supplier;
 
 @Service
 public class LeadOrchestrator implements LeadOrchestrationUseCase {
+
     private static final Logger log = LoggerFactory.getLogger(LeadOrchestrator.class);
     private static final int TIMEOUT_SECONDS = 5;
     private static final int MAX_ASYNC_RETRIES = 3;
@@ -46,36 +47,45 @@ public class LeadOrchestrator implements LeadOrchestrationUseCase {
         log.info("Processing pipeline for lead. Attempt: {}", lead.retryCount());
         Map<String, String> contextMap = MDC.getCopyOfContextMap();
 
-        return CompletableFuture.supplyAsync(() -> executeWithMdc(contextMap, () -> registryPort.validate(lead)), executor)
-                .orTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                .thenCombineAsync(CompletableFuture.supplyAsync(() -> executeWithMdc(contextMap, () -> judicialPort.checkBackground(lead)), executor),
-                        (reg, jud) -> reg.isSuccessful() && jud.isSuccessful() ? reg : (!reg.isSuccessful() ? reg : jud), executor)
-
-                .thenApplyAsync(res -> executeWithMdc(contextMap, () ->
-                        res.isSuccessful() ? compliancePort.verifyCompliance(lead) : res
-                ), executor)
-                .thenApplyAsync(res -> executeWithMdc(contextMap, () ->
-                        res.isSuccessful() ? scorerPort.calculateScore(lead) : res
-                ), executor)
-
-                .thenApplyAsync(result -> {
-                    setMdc(contextMap);
-                    Lead finalLead = lead.withValidationStatus(result.status());
-                    leadRepositoryPort.save(finalLead);
-                    return result;
-                }, executor)
-                .exceptionally(ex -> {
-                    setMdc(contextMap);
-                    handlePipelineFailure(lead, ex);
-                    return new ValidationResult(ValidationStatus.PENDING, "System error, retry scheduled.");
-                })
+        return executeParallelChecks(lead, contextMap)
+                .thenApplyAsync(res -> executeSequentialCheck(res, () -> compliancePort.verifyCompliance(lead), contextMap), executor)
+                .thenApplyAsync(res -> executeSequentialCheck(res, () -> scorerPort.calculateScore(lead), contextMap), executor)
+                .thenApplyAsync(res -> finalizePipeline(lead, res, contextMap), executor)
+                .exceptionally(ex -> handleError(lead, ex, contextMap))
                 .whenComplete((res, ex) -> MDC.clear());
     }
 
-    private void handlePipelineFailure(Lead lead, Throwable ex) {
+    private CompletableFuture<ValidationResult> executeParallelChecks(Lead lead, Map<String, String> contextMap) {
+        CompletableFuture<ValidationResult> registryCheck = CompletableFuture
+                .supplyAsync(() -> executeWithMdc(contextMap, () -> registryPort.validate(lead)), executor)
+                .orTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        CompletableFuture<ValidationResult> judicialCheck = CompletableFuture
+                .supplyAsync(() -> executeWithMdc(contextMap, () -> judicialPort.checkBackground(lead)), executor)
+                .orTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        return registryCheck.thenCombineAsync(judicialCheck,
+                (reg, jud) -> reg.isSuccessful() && jud.isSuccessful() ? reg : (!reg.isSuccessful() ? reg : jud),
+                executor);
+    }
+
+    private ValidationResult executeSequentialCheck(ValidationResult previousResult, Supplier<ValidationResult> nextCheck, Map<String, String> contextMap) {
+        return executeWithMdc(contextMap, () -> previousResult.isSuccessful() ? nextCheck.get() : previousResult);
+    }
+
+    private ValidationResult finalizePipeline(Lead lead, ValidationResult result, Map<String, String> contextMap) {
+        restoreMdc(contextMap);
+        Lead finalLead = lead.withValidationStatus(result.status());
+        leadRepositoryPort.save(finalLead);
+        return result;
+    }
+
+    private ValidationResult handleError(Lead lead, Throwable ex, Map<String, String> contextMap) {
+        restoreMdc(contextMap);
         log.error("Pipeline failed for lead {}: {}", lead.nationalId(), ex.getMessage());
+
         if (lead.retryCount() < MAX_ASYNC_RETRIES) {
-            int delay = lead.retryCount() + 1; // Simple backoff: 1, 2, 3 minutes
+            int delay = lead.retryCount() + 1;
             Lead retryLead = lead.prepareNextAsyncRetry(delay);
             leadRepositoryPort.save(retryLead);
             log.info("Lead {} scheduled for async retry in {} minutes", lead.nationalId(), delay);
@@ -83,14 +93,21 @@ public class LeadOrchestrator implements LeadOrchestrationUseCase {
             leadRepositoryPort.save(lead.markForManualReview());
             log.warn("Max async retries reached for lead {}. Moved to MANUAL_REVIEW", lead.nationalId());
         }
+        return new ValidationResult(ValidationStatus.PENDING, "System error, retry scheduled.");
     }
 
     private <T> T executeWithMdc(Map<String, String> contextMap, Supplier<T> action) {
-        if (contextMap != null) MDC.setContextMap(contextMap);
-        try { return action.get(); } finally { MDC.clear(); }
+        restoreMdc(contextMap);
+        try {
+            return action.get();
+        } finally {
+            MDC.clear();
+        }
     }
 
-    private void setMdc(Map<String, String> contextMap) {
-        if (contextMap != null) MDC.setContextMap(contextMap);
+    private void restoreMdc(Map<String, String> contextMap) {
+        if (contextMap != null) {
+            MDC.setContextMap(contextMap);
+        }
     }
 }

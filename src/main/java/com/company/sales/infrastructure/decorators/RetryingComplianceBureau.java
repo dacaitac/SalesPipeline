@@ -6,15 +6,15 @@ import com.company.sales.domain.ports.out.ComplianceBureauPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ComplianceResilienceDecorator implements ComplianceBureauPort {
-    private static final Logger log = LoggerFactory.getLogger(ComplianceResilienceDecorator.class);
+public class RetryingComplianceBureau implements ComplianceBureauPort {
+    private static final Logger log = LoggerFactory.getLogger(RetryingComplianceBureau.class);
     private static final int MAX_LOCAL_RETRIES = 3;
     private static final long RETRY_DELAY_MS = 1000;
 
-    private final ComplianceBureauPort delegate;
+    private final ComplianceBureauPort bureauService;
 
-    public ComplianceResilienceDecorator(ComplianceBureauPort delegate) {
-        this.delegate = delegate;
+    public RetryingComplianceBureau(ComplianceBureauPort bureauService) {
+        this.bureauService = bureauService;
     }
 
     @Override
@@ -22,7 +22,7 @@ public class ComplianceResilienceDecorator implements ComplianceBureauPort {
         int attempts = 0;
         while (attempts < MAX_LOCAL_RETRIES) {
             try {
-                return delegate.verifyCompliance(lead);
+                return bureauService.verifyCompliance(lead);
             } catch (Exception e) {
                 attempts++;
                 log.warn("Local retry attempt {} for lead {}. Reason: {}", attempts, lead.nationalId(), e.getMessage());

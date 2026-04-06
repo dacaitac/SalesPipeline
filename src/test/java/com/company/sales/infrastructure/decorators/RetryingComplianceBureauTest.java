@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 @DisplayName("Infrastructure: Compliance Resilience Decorator Tests")
-class ComplianceResilienceDecoratorTest {
+class RetryingComplianceBureauTest {
 
     @Test
     @DisplayName("Should throw exception and exhaust local retries when underlying service fails continuously")
@@ -23,7 +23,7 @@ class ComplianceResilienceDecoratorTest {
                 "test@test.com", ValidationStatus.PENDING, 0, null);
 
         when(delegate.verifyCompliance(dummyLead)).thenThrow(new RuntimeException("Network Error"));
-        ComplianceResilienceDecorator decorator = new ComplianceResilienceDecorator(delegate);
+        RetryingComplianceBureau decorator = new RetryingComplianceBureau(delegate);
 
         // Act & Assert
         assertThatThrownBy(() -> decorator.verifyCompliance(dummyLead))
